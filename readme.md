@@ -4,4 +4,4 @@
 
 ## Dokumentation
 
-![Schaltplan](/doc/schaltplan.svg)
+![Schaltplan](/doc/schaltplan.png)
