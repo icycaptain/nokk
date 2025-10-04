@@ -32,8 +32,8 @@
      inkscape:cy="388.90872"
      inkscape:window-width="1206"
      inkscape:window-height="1084"
-     inkscape:window-x="763"
-     inkscape:window-y="15"
+     inkscape:window-x="509"
+     inkscape:window-y="31"
      inkscape:window-maximized="0"
      inkscape:current-layer="layer1">
     <inkscape:grid
@@ -981,11 +981,11 @@
        transform="translate(31.831191,-34.099032)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan2544">ODESC
+         id="tspan3319">ODESC
 </tspan><tspan
          x="57.165596"
          y="71.519933"
-         id="tspan2546">Motorregler</tspan></text>
+         id="tspan3321">Motorregler</tspan></text>
     <g
        id="use87807"
        transform="translate(-25.210252,-138.11049)">
@@ -2329,10 +2329,10 @@
        transform="translate(21.207275,47.453951)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan2548">DC/DC </tspan><tspan
+         id="tspan3323">DC/DC </tspan><tspan
          x="57.165596"
          y="71.519933"
-         id="tspan2550">Wandler</tspan></text>
+         id="tspan3325">Wandler</tspan></text>
     <text
        id="text7920-3-2-7-6-6-5"
        y="67.992157"
@@ -2342,11 +2342,11 @@
        transform="translate(61.93844,46.443441)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan2552">LED
+         id="tspan3327">LED
 </tspan><tspan
          x="57.165596"
          y="71.519933"
-         id="tspan2554">Treiber</tspan></text>
+         id="tspan3329">Treiber</tspan></text>
     <g
        id="use10"
        transform="rotate(180,86.645414,41.396554)">
@@ -2788,11 +2788,11 @@
        transform="translate(105.1606,85.461887)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan2556">BLD
+         id="tspan3331">BLD
 </tspan><tspan
          x="57.165596"
          y="71.519933"
-         id="tspan2558">Motorregler</tspan></text>
+         id="tspan3333">Motorregler</tspan></text>
     <text
        id="text7920-3-2-2-7"
        y="133.29829"
@@ -3033,11 +3033,11 @@
        transform="translate(127.23591,84.55603)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan2560">Motor
+         id="tspan3335">Motor
 </tspan><tspan
          x="57.165596"
          y="71.519933"
-         id="tspan2562">Beine</tspan></text>
+         id="tspan3337">Beine</tspan></text>
     <g
        transform="translate(19.676448,-3.9876143)"
        id="g5731-5">
@@ -3507,7 +3507,7 @@
        transform="translate(25.017561,-62.56231)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan2564">Hauptantrieb 0</tspan></text>
+         id="tspan3339">Hauptantrieb 0</tspan></text>
     <text
        id="text7920-3-2-7-6-4-6"
        y="67.992157"
@@ -3517,7 +3517,7 @@
        transform="translate(24.561611,21.219362)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan2566">Hauptantrieb 1</tspan></text>
+         id="tspan3341">Hauptantrieb 1</tspan></text>
     <text
        id="text7920-3-2-7-6-3"
        y="67.992157"
@@ -3527,11 +3527,11 @@
        transform="translate(76.550348,-30.632895)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan2568">ESP32
+         id="tspan3343">ESP32
 </tspan><tspan
          x="57.165596"
          y="71.519933"
-         id="tspan2570">Steuerung</tspan></text>
+         id="tspan3345">Steuerung</tspan></text>
     <text
        id="text7920-2-30-7"
        y="51.469997"
@@ -3628,11 +3628,11 @@
        transform="translate(128.76567,-31.055064)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan2572">Joycon
+         id="tspan3347">Joycon
 </tspan><tspan
          x="57.165596"
          y="71.519933"
-         id="tspan2574">Fernbedienung</tspan></text>
+         id="tspan3349">Fernbedienung</tspan></text>
     <path
        inkscape:connector-curvature="0"
        id="path5293-3-8"

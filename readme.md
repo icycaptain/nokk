@@ -73,7 +73,7 @@ Die Stromversorgung und Motorregelung befindet sich zwischen den Hauptantriebsr�
 
 Im Bedienpanel vor dem Bedienersitz befinden sich der Not-Aus Schalter S1 und die Hauptsteuerung, die aus den Bedienereingaben am Bedienpanel bzw. der Joycon Bluetooth Fernbedienung die Stellgrößen für den Hauptantrieb, die Beleuchtung und den Nebenmotor (Beinantrieb) errechnet.
 
-Wenn das System nicht versorgt wird (S1 oder S2 offen), werden beide Hauptantriebe gehemmt. Das ist notwendig, um das Fahrzeug passiv zu bremsen, wenn der Not-Aus während der Fahrt betätigt wird. Die Hemmung findet über die Relais K2 und K3 statt. Wenn das System nicht versorgt wird, schließen K2 bzw. K3 die drei Phasen des jeweiligen Motors über einen Brückengleichrichter kurz. Dadurch wird die Generatorleitung der Motoren über die Motorwicklungen (ca. 0,3 Ohm) in Wärme abgeführt, und das Fahrzeug so gebremst.
+Wenn das System nicht versorgt wird (S1 oder S2 offen), werden beide Hauptantriebe gehemmt. Das ist notwendig, um das Fahrzeug passiv zu bremsen, wenn der Not-Aus während der Fahrt betätigt wird. Die Hemmung findet über die Relais K2 und K3 statt. Wenn das System nicht versorgt wird, schließen K2 bzw. K3 die drei Phasen des jeweiligen Motors über einen Brückengleichrichter kurz. Dadurch wird die Generatorleistung der Motoren über die Motorwicklungen (ca. 0,3 Ohm) in Wärme abgeführt, und das Fahrzeug so gebremst.
 
 ![Schaltplan](/doc/schaltplan.png)
 
