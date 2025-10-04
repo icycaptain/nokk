@@ -3,12 +3,15 @@
 
 <svg
    width="210mm"
-   height="297mm"
-   viewBox="0 0 210 297"
+   height="180mm"
+   viewBox="0 0 210 180"
    version="1.1"
    id="svg17650"
    inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
-   sodipodi:docname="Schaltplan.svg"
+   sodipodi:docname="schaltplan.svg"
+   inkscape:export-filename="schaltplan.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -19,47 +22,49 @@
      bordercolor="#000000"
      borderopacity="0.25"
      inkscape:showpageshadow="2"
-     inkscape:pageopacity="0.0"
+     inkscape:pageopacity="1"
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      showgrid="true"
-     inkscape:zoom="1.4142136"
-     inkscape:cx="384.66609"
-     inkscape:cy="425.32473"
-     inkscape:window-width="1920"
-     inkscape:window-height="1141"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
-     inkscape:window-maximized="1"
+     inkscape:zoom="0.7071068"
+     inkscape:cx="-211.42492"
+     inkscape:cy="388.90872"
+     inkscape:window-width="1206"
+     inkscape:window-height="1084"
+     inkscape:window-x="763"
+     inkscape:window-y="15"
+     inkscape:window-maximized="0"
      inkscape:current-layer="layer1">
     <inkscape:grid
        type="xygrid"
        id="grid17654"
        units="mm"
        spacingx="5"
-       spacingy="5" />
+       spacingy="5"
+       originx="0"
+       originy="0" />
   </sodipodi:namedview>
   <defs
      id="defs17647">
     <rect
-       x="571.39066"
-       y="592.07002"
-       width="27.520843"
+       x="571.39069"
+       y="592.07001"
+       width="27.520844"
        height="18.257351"
        id="rect21621" />
     <inkscape:perspective
        sodipodi:type="inkscape:persp3d"
-       inkscape:vp_x="0 : 148.5 : 1"
+       inkscape:vp_x="0 : 31.499996 : 1"
        inkscape:vp_y="0 : 1000 : 0"
-       inkscape:vp_z="210 : 148.5 : 1"
-       inkscape:persp3d-origin="105 : 99 : 1"
+       inkscape:vp_z="210 : 31.499996 : 1"
+       inkscape:persp3d-origin="105 : -18.000003 : 1"
        id="perspective19612" />
     <rect
        x="362.30966"
        y="189.99785"
        width="63.778839"
-       height="17.148721"
+       height="17.148722"
        id="rect19566" />
     <marker
        inkscape:collect="always"
@@ -976,11 +981,11 @@
        transform="translate(31.831191,-34.099032)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan25992">ODESC
+         id="tspan2544">ODESC
 </tspan><tspan
          x="57.165596"
          y="71.519933"
-         id="tspan25994">Motorregler</tspan></text>
+         id="tspan2546">Motorregler</tspan></text>
     <g
        id="use87807"
        transform="translate(-25.210252,-138.11049)">
@@ -2324,10 +2329,10 @@
        transform="translate(21.207275,47.453951)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan25996">DC/DC </tspan><tspan
+         id="tspan2548">DC/DC </tspan><tspan
          x="57.165596"
          y="71.519933"
-         id="tspan25998">Wandler</tspan></text>
+         id="tspan2550">Wandler</tspan></text>
     <text
        id="text7920-3-2-7-6-6-5"
        y="67.992157"
@@ -2337,11 +2342,11 @@
        transform="translate(61.93844,46.443441)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan26000">LED
+         id="tspan2552">LED
 </tspan><tspan
          x="57.165596"
          y="71.519933"
-         id="tspan26002">Treiber</tspan></text>
+         id="tspan2554">Treiber</tspan></text>
     <g
        id="use10"
        transform="rotate(180,86.645414,41.396554)">
@@ -2783,11 +2788,11 @@
        transform="translate(105.1606,85.461887)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan26004">BLD
+         id="tspan2556">BLD
 </tspan><tspan
          x="57.165596"
          y="71.519933"
-         id="tspan26006">Motorregler</tspan></text>
+         id="tspan2558">Motorregler</tspan></text>
     <text
        id="text7920-3-2-2-7"
        y="133.29829"
@@ -3028,18 +3033,11 @@
        transform="translate(127.23591,84.55603)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan26008">Motor
+         id="tspan2560">Motor
 </tspan><tspan
          x="57.165596"
          y="71.519933"
-         id="tspan26010">Beine</tspan></text>
-    <rect
-       style="fill:none;stroke:#000000;stroke-width:0.265;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:0.53, 0.53;stroke-dashoffset:0"
-       id="rect10040"
-       width="128.99487"
-       height="21.213636"
-       x="66.574348"
-       y="137.77127" />
+         id="tspan2562">Beine</tspan></text>
     <g
        transform="translate(19.676448,-3.9876143)"
        id="g5731-5">
@@ -3509,7 +3507,7 @@
        transform="translate(25.017561,-62.56231)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan26012">Hauptantrieb 0</tspan></text>
+         id="tspan2564">Hauptantrieb 0</tspan></text>
     <text
        id="text7920-3-2-7-6-4-6"
        y="67.992157"
@@ -3519,7 +3517,7 @@
        transform="translate(24.561611,21.219362)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan26014">Hauptantrieb 1</tspan></text>
+         id="tspan2566">Hauptantrieb 1</tspan></text>
     <text
        id="text7920-3-2-7-6-3"
        y="67.992157"
@@ -3529,11 +3527,11 @@
        transform="translate(76.550348,-30.632895)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan26016">ESP32
+         id="tspan2568">ESP32
 </tspan><tspan
          x="57.165596"
          y="71.519933"
-         id="tspan26018">Steuerung</tspan></text>
+         id="tspan2570">Steuerung</tspan></text>
     <text
        id="text7920-2-30-7"
        y="51.469997"
@@ -3630,11 +3628,11 @@
        transform="translate(128.76567,-31.055064)"><tspan
          x="57.165596"
          y="67.992157"
-         id="tspan26020">Joycon
+         id="tspan2572">Joycon
 </tspan><tspan
          x="57.165596"
          y="71.519933"
-         id="tspan26022">Fernbedienung</tspan></text>
+         id="tspan2574">Fernbedienung</tspan></text>
     <path
        inkscape:connector-curvature="0"
        id="path5293-3-8"
@@ -3674,18 +3672,7 @@
          y="62.664993"
          x="156.77054"
          id="tspan7918-8-4-5-7-8"
-         sodipodi:role="line">3,3V PWM</tspan></text>
-    <text
-       id="text7920-2-1-6"
-       y="151.30128"
-       x="128.00851"
-       style="font-style:normal;font-weight:normal;font-size:2.82222px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
-       xml:space="preserve"><tspan
-         style="stroke-width:0.264583"
-         y="151.30128"
-         x="128.00851"
-         id="tspan7918-8-15-0"
-         sodipodi:role="line">W.I.P.</tspan></text>
+         sodipodi:role="line">RS485 ModBus</tspan></text>
     <text
        id="text7920-2-1-6-4"
        y="149.89877"
@@ -3706,7 +3693,7 @@
          y="156.95433"
          x="15.158341"
          sodipodi:role="line"
-         id="tspan23606">30.09.2025.</tspan></text>
+         id="tspan23606">04.10.2025.</tspan></text>
     <g
        transform="translate(5.2328814,-31.340876)"
        id="g5731-8-8">
