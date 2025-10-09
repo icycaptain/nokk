@@ -1,13 +1,7 @@
 #include <Bluepad32.h>
-
-//#include <WiFi.h>
 #include <ODriveUART.h>
 #include <HardwareSerial.h>
 #include <SoftwareSerial.h>
-
-//#include <ESPAsyncWebServer.h>
-//#include "LittleFS.h"
-//#include <Arduino_JSON.h>
 
 
 //uint8_t
@@ -562,14 +556,6 @@ void setup() {
 
   xTaskCreate(legTaskFunction, "leg", 4096, NULL, 3, NULL);
 
-
-  //initWiFi();
-  //initLittleFS();
-  //webserver.serveStatic("/", LittleFS, "/");
-  //webserver.begin();
-  //initWebSocket();
-  //xTaskCreate(telemetryTaskFunction, "telemetry", 4096, NULL, 2, NULL);
- 
 }
 
 
@@ -641,102 +627,5 @@ void loop() {
 
 
 
-
-/*
-void initWiFi() {
-  // Connect to Wi-Fi network with SSID and password
-  Serial.print("Setting AP (Access Point)…");
-
-  // Remove the password parameter, if you want the AP (Access Point) to be open
-  WiFi.softAP(ssid);
-
-  IPAddress IP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(IP);
-}*/
-
-/*
-void initLittleFS() {
-  if (!LittleFS.begin(true)) {
-    Serial.println("An error has occurred while mounting LittleFS");
-  }
-  Serial.println("LittleFSmounted successfully");
-}>*/
-
-/*
-void telemetryTaskFunction(void *parameter) {
-  TickType_t lastWakeTime;
-  //const TickType_t cyclePeriod = 40; // ms = 25Hz
-  lastWakeTime = xTaskGetTickCount();
-
-  JSONVar readings;
-  while (true) {
-    readings["state"] = myState;
-    readings["battery"] = 36.78f;
-
-    String jsonString = JSON.stringify(readings);
-    ws.textAll(jsonString);
-
-    vTaskDelayUntil(&lastWakeTime, TELEMETRY_CYCLE_PERIOD);
-  }
-}*/
-
-
-
-
-/*
-// Get Sensor Readings and return JSON object
-String getSensorReadings(){
-    readings["mode"] = myState;
-    readings["battery"] = 36.78f;
-  
-  String jsonString = JSON.stringify(readings);
-  return jsonString;
-}
-
-void notifyClients(String sensorReadings) {
-  ws.textAll(sensorReadings);
-}
-*/
-/*
-void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
-  AwsFrameInfo *info = (AwsFrameInfo*)arg;
-  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
-    data[len] = 0;
-    String message = (char*)data;
-    //Check if the message is "getReadings"
-    if (strcmp((char*)data, "getReadings") == 0) {
-      //if it is, send current sensor readings
-      String sensorReadings = getSensorReadings();
-      Serial.print(sensorReadings);
-      notifyClients(sensorReadings);
-    }
-  }
-}
-*/
-
-
-/*
-void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
-  switch (type) {
-    case WS_EVT_CONNECT:
-      Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
-      break;
-    case WS_EVT_DISCONNECT:
-      Serial.printf("WebSocket client #%u disconnected\n", client->id());
-      break;
-    case WS_EVT_DATA:
-      //handleWebSocketMessage(arg, data, len);
-      break;
-    case WS_EVT_PONG:
-    case WS_EVT_ERROR:
-      break;
-  }
-}
-
-void initWebSocket() {
-  ws.onEvent(onEvent);
-  webserver.addHandler(&ws);
-}*/
 
 
