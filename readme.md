@@ -9,8 +9,8 @@
 | weiß blinken | Fahrzeug nicht bereit |
 | weiß | Fahrzeug bereit (Drehschalter Mitte) |
 | grün | Fahrzeug fährt mit Vor-Ort Bedienung (Drehschalter links) |
-| blau | Fahrzeug fährt mit Ferndienung (Drehschalter rechts) |
-| blau blinken | Fahrzeug Fernbedieunun nicht verbunden (Drehschalter rechts) |
+| blau | Fahrzeug fährt mit Fernbedienung (Drehschalter rechts) |
+| blau blinken | Fahrzeug Fernbedienung nicht verbunden (Drehschalter rechts) |
 | rot blinken | Fehler im Fahrzeug |
 
 ### Fahrzeug in Betrieb nehmen
