@@ -404,20 +404,25 @@ void setLegControl(bool enable, bool forward) {
   legController.writeSingleRegister(0x8000, value);
 }
 
+void setLegStartTorque(uint8_t torque) {
+  legController.writeSingleRegister(0x8002, (torque << 8) | (0x00));
+}
+
 void setLegTime(uint8_t acceleration, uint8_t deceleration) {
   legController.writeSingleRegister(0x8003, (acceleration << 8) | (deceleration));
 }
 
 void setLegSpeed(float rot_per_s) {
   // gearing has 9/40 ratio
-  const float gearing = 9.0f / 40.0f;
+  const float gearing = 9.0f / 44.0f;
   const float rpm_motor = 60.f * rot_per_s / gearing;
+  const uint16_t value =  __builtin_bswap16((uint16_t) rpm_motor);
 
-  legController.writeSingleRegister(0x8005, (uint16_t) rpm_motor);
+  legController.writeSingleRegister(0x8005, value);
 
 }
 
-const float LEG_MAX_SPEED = 0.5f; // half rotation per second
+const float LEG_MAX_SPEED = 0.25; // quarter rotation per second
 
 
 
@@ -428,6 +433,7 @@ void legTaskFunction(void* parameter) {
   setLegTime(20, 0); // 2s to full speed
   setLegControl(false, true);
   setLegSpeed(LEG_MAX_SPEED);
+  setLegStartTorque(255);
 
   while(true) {
     // todo: use drive speed
@@ -435,16 +441,18 @@ void legTaskFunction(void* parameter) {
     if(lightState) {
 
       if(!armed) {
+        setLegSpeed(LEG_MAX_SPEED);
         setLegControl(true, true);
         armed=true;
       }
     } else {
       if(armed) {
+        setLegSpeed(0);
         setLegControl(false, true);
         armed=false;
       }
     }
-    vTaskDelay(500);
+    vTaskDelay(100);
   }
 }
 
@@ -559,7 +567,7 @@ void setup() {
   pinMode(LEG_RX_PIN, INPUT);
   pinMode(LEG_TX_PIN, OUTPUT);
   legSerial.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, LEG_RX_PIN, LEG_TX_PIN);
-  //legSerial.enableIntTx(true);
+  legSerial.enableIntTx(true);
 
   legController.begin(1, legSerial);
 
