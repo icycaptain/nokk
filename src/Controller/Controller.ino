@@ -416,7 +416,7 @@ void legTaskFunction(void* parameter) {
       myLegSerial.write(0x06);
       myLegSerial.write(0x80);
       myLegSerial.write((uint8_t)0x00);
-      myLegSerial.write(0x09);
+      myLegSerial.write(0x0A);
       myLegSerial.write(0x04);
       myLegSerial.write(0xA7);
       myLegSerial.write(0x99);

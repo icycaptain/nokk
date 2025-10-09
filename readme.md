@@ -103,9 +103,9 @@ Wenn das System nicht versorgt wird (S1 oder S2 offen), werden beide Hauptantrie
 | --- | --- | --- |
 | 1 | Orange/Weiß | UART ODESC RX |
 | 2 | Orange | UART ODESC TX |
-| 3 | Grün/Weiß | Modbus RX |
+| 3 | Grün/Weiß | Modbus RS485 A+ |
 | 4 | Blau | PWM Licht |
 | 5 | Blau/Weiß | (Reserve) |
-| 6 | Grün | Modbus TX |
+| 6 | Grün | Modbus RS485 B- |
 | 7 | Braun/weiß | 5V (Eingang) |
 | 8 | Braun | 0V (Eingang) |
