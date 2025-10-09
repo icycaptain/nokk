@@ -2,7 +2,7 @@
 #include <ODriveUART.h>
 #include <HardwareSerial.h>
 #include <SoftwareSerial.h>
-
+#include <ModbusMaster.h>
 
 //uint8_t
 #define BLUE_LED 2
@@ -87,11 +87,10 @@ ODriveUART odrive(myOdriveSerial);
 const byte LEG_RX_PIN = 22;
 const byte LEG_TX_PIN = 23;
 
-EspSoftwareSerial::UART myLegSerial(LEG_RX_PIN, LEG_TX_PIN);
+EspSoftwareSerial::UART legSerial(LEG_RX_PIN, LEG_TX_PIN);
 
-//AsyncWebServer webserver(80);
-// Create a WebSocket object
-//AsyncWebSocket ws("/ws");
+// instantiate ModbusMaster object
+ModbusMaster legController;
 
 
 //
@@ -387,42 +386,63 @@ void lightLoop(void *parameter) {
 
     vTaskDelay(delay);
   }
+}
+
+// we do the forward/backward logic here
+// nokk forward -> motor backward
+// nokk backward -> motor forward
+void setLegControl(bool enable, bool forward) {
+  const uint16_t pole_pairs = 0x0004; // 4 pole pairs
+  const bool brake = false;
+  const uint16_t ctrl = 
+    ((enable)  ? 0x0100 : 0x0000) |
+    ((forward) ? 0x0200 : 0x0000) | 
+    ((brake)   ? 0x0400 : 0x0000) |
+    0x0800; // always RS485
+
+  const uint16_t value = ctrl | pole_pairs;
+  legController.writeSingleRegister(0x8000, value);
+}
+
+void setLegTime(uint8_t acceleration, uint8_t deceleration) {
+  legController.writeSingleRegister(0x8003, (acceleration << 8) | (deceleration));
+}
+
+void setLegSpeed(float rot_per_s) {
+  // gearing has 9/40 ratio
+  const float gearing = 9.0f / 40.0f;
+  const float rpm_motor = 60.f * rot_per_s / gearing;
+
+  legController.writeSingleRegister(0x8005, (uint16_t) rpm_motor);
 
 }
 
-void legTaskFunction(void* parameter) {
-  // speed
-  myLegSerial.write(0x01);
-  myLegSerial.write(0x06);
-  myLegSerial.write(0x80);
-  myLegSerial.write((uint8_t)0x05);
-  myLegSerial.write(0x0A);
-  myLegSerial.write(0x01);
-  myLegSerial.write(0x77);
-  myLegSerial.write(0x6B);
+const float LEG_MAX_SPEED = 0.5f; // half rotation per second
 
+
+
+void legTaskFunction(void* parameter) {
+  bool armed = false;
+
+  // speed
+  setLegTime(20, 0); // 2s to full speed
+  setLegControl(false, true);
+  setLegSpeed(LEG_MAX_SPEED);
 
   while(true) {
     // todo: use drive speed
     // abusing light signal for now
     if(lightState) {
-      myLegSerial.write(0x01);
-      myLegSerial.write(0x06);
-      myLegSerial.write(0x80);
-      myLegSerial.write((uint8_t)0x00);
-      myLegSerial.write(0x0A);
-      myLegSerial.write(0x04);
-      myLegSerial.write(0xA7);
-      myLegSerial.write(0x99);
+
+      if(!armed) {
+        setLegControl(true, true);
+        armed=true;
+      }
     } else {
-      myLegSerial.write(0x01);
-      myLegSerial.write(0x06);
-      myLegSerial.write(0x80);
-      myLegSerial.write((uint8_t)0x00);
-      myLegSerial.write((uint8_t)0x00);
-      myLegSerial.write(0x04);
-      myLegSerial.write(0xA1);
-      myLegSerial.write(0xC9);
+      if(armed) {
+        setLegControl(false, true);
+        armed=false;
+      }
     }
     vTaskDelay(500);
   }
@@ -538,8 +558,11 @@ void setup() {
 
   pinMode(LEG_RX_PIN, INPUT);
   pinMode(LEG_TX_PIN, OUTPUT);
-  myLegSerial.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, LEG_RX_PIN, LEG_TX_PIN);
-  myLegSerial.enableIntTx(true);
+  legSerial.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, LEG_RX_PIN, LEG_TX_PIN);
+  //legSerial.enableIntTx(true);
+
+  legController.begin(1, legSerial);
+
 
 
    // Setup the Bluepad32 callbacks
