@@ -392,7 +392,7 @@ void lightLoop(void *parameter) {
 // nokk forward -> motor backward
 // nokk backward -> motor forward
 void setLegControl(bool enable, bool forward) {
-  const uint16_t pole_pairs = 0x0004; // 4 pole pairs
+  const uint16_t pole_pairs = 0x0004; // however  specs says 4 pole pairs
   const bool brake = false;
   const uint16_t ctrl = 
     ((enable)  ? 0x0100 : 0x0000) |
@@ -413,27 +413,42 @@ void setLegTime(uint8_t acceleration, uint8_t deceleration) {
 }
 
 void setLegSpeed(float rot_per_s) {
-  // gearing has 9/40 ratio
-  const float gearing = 9.0f / 44.0f;
-  const float rpm_motor = 60.f * rot_per_s / gearing;
-  const uint16_t value =  __builtin_bswap16((uint16_t) rpm_motor);
+  // gearing has 10/40 ratio
+  const float gearing = 10.0f / 44.0f;
+  //const float rpm_motor = 60.f * rot_per_s / gearing;
+
+  //uint16_t rpm_motor = 600; // ergibt 2 umrehungen pro sekunde ??
+//  uint16_t rpm_motor = 600;
+  uint16_t rpm_motor = 600;
+
+
+  const uint16_t value =  __builtin_bswap16(rpm_motor);
+ // Serial.printf("LEG %x", value);
 
   legController.writeSingleRegister(0x8005, value);
 
 }
 
-const float LEG_MAX_SPEED = 0.25; // quarter rotation per second
-
-
+const float LEG_MAX_SPEED = 0.5f; // quarter rotation per second
+const bool LEG_FORWARD = true;
 
 void legTaskFunction(void* parameter) {
+
+  legSerial.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, LEG_RX_PIN, LEG_TX_PIN);
+  //legSerial.enableIntTx(true);
+  legController.begin(1, legSerial);
+
   bool armed = false;
 
   // speed
-  setLegTime(20, 0); // 2s to full speed
-  setLegControl(false, true);
+//  setLegTime(20, 0); // 2s to full speed
+//  vTaskDelay(100);
+  setLegControl(false, LEG_FORWARD);
+  vTaskDelay(200);
   setLegSpeed(LEG_MAX_SPEED);
-  setLegStartTorque(255);
+  vTaskDelay(200);
+  //setLegStartTorque(50);  // 0..255 - 10%
+  //vTaskDelay(100);
 
   while(true) {
     // todo: use drive speed
@@ -441,18 +456,16 @@ void legTaskFunction(void* parameter) {
     if(lightState) {
 
       if(!armed) {
-        setLegSpeed(LEG_MAX_SPEED);
-        setLegControl(true, true);
+        setLegControl(true, LEG_FORWARD);
         armed=true;
       }
     } else {
       if(armed) {
-        setLegSpeed(0);
-        setLegControl(false, true);
+        setLegControl(false, LEG_FORWARD);
         armed=false;
       }
     }
-    vTaskDelay(100);
+    vTaskDelay(200);
   }
 }
 
@@ -566,10 +579,6 @@ void setup() {
 
   pinMode(LEG_RX_PIN, INPUT);
   pinMode(LEG_TX_PIN, OUTPUT);
-  legSerial.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, LEG_RX_PIN, LEG_TX_PIN);
-  legSerial.enableIntTx(true);
-
-  legController.begin(1, legSerial);
 
 
 
@@ -585,7 +594,7 @@ void setup() {
 
   xTaskCreate(bluetoothTaskFunction, "bluetooth", 4096, NULL, 4, NULL);
 
-  xTaskCreate(legTaskFunction, "leg", 4096, NULL, 3, NULL);
+  xTaskCreate(legTaskFunction, "leg", 4096, NULL, 3, NULL); 
 
 }
 
