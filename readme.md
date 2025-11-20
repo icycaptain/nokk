@@ -11,7 +11,7 @@
 | grün | Fahrzeug fährt mit Vor-Ort Bedienung (Drehschalter links) |
 | blau | Fahrzeug fährt mit Fernbedienung (Drehschalter rechts) |
 | blau blinken | Fahrzeug Fernbedienung nicht verbunden (Drehschalter rechts) |
-| weiß | blinken | Fehler im Fahrzeug |
+| weiß  blinken | Fehler im Fahrzeug |
 
 ### Fahrzeug in Betrieb nehmen
 
