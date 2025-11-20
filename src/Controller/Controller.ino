@@ -1,7 +1,6 @@
 #include <Bluepad32.h>
 #include <ODriveUART.h>
 #include <HardwareSerial.h>
-#include <SoftwareSerial.h>
 #include <ModbusMaster.h>
 
 //uint8_t
@@ -25,12 +24,12 @@ const uint8_t LIGHT_PWM_GPIO=26; // blue
 // green: 2
 // blue: 4
 // flashing: 8
-#define STATE_UNDEFINED 15          // white flashing
-#define STATE_IDLE 7                // white
+#define STATE_UNDEFINED 9          // white flashing
+#define STATE_IDLE 1 // 7                // white
 #define STATE_JOYSTICK_DRIVE 2      // green
 #define STATE_BLUETOOTH_DRIVE 4     // blue
 #define STATE_BLUETOOTH_WAITING 12  // blue flashing
-#define STATE_ERROR 9               // red flashing
+#define STATE_ERROR 15 //9               // red flashing
 // spare
 // magenta  5
 // cyan     6
@@ -87,9 +86,6 @@ ODriveUART odrive(myOdriveSerial);
 const byte LEG_RX_PIN = 22;
 const byte LEG_TX_PIN = 23;
 
-EspSoftwareSerial::UART legSerial(LEG_RX_PIN, LEG_TX_PIN);
-
-// instantiate ModbusMaster object
 ModbusMaster legController;
 
 
@@ -171,7 +167,7 @@ void driveTaskFunction(void *parameter) {
         requestedAxisSpeed[0] = vel_left * LEFT_DIR;
         requestedAxisSpeed[1] = vel_right * RIGHT_DIR;
 
-        Serial.printf("wheelz V[%+6.1f %+6.1f] Y[%+8.1f %+8.1f] B[%d] A[%+5.1f %+5.1f]\n", desired_vel, currentVel, desired_yaw, currentYaw, brake, requestedAxisSpeed[0], requestedAxisSpeed[1]);
+       // Serial.printf("wheelz V[%+6.1f %+6.1f] Y[%+8.1f %+8.1f] B[%d] A[%+5.1f %+5.1f]\n", desired_vel, currentVel, desired_yaw, currentYaw, brake, requestedAxisSpeed[0], requestedAxisSpeed[1]);
 
         break;
     }
@@ -401,7 +397,11 @@ void setLegControl(bool enable, bool forward) {
     0x0800; // always RS485
 
   const uint16_t value = ctrl | pole_pairs;
-  legController.writeSingleRegister(0x8000, value);
+
+  //Serial.printf("LEG CTRL %x ", value);
+  uint8_t result = legController.writeSingleRegister(0x8000, value);
+  //Serial.printf("RES %x\n", result);
+
 }
 
 void setLegStartTorque(uint8_t torque) {
@@ -413,59 +413,79 @@ void setLegTime(uint8_t acceleration, uint8_t deceleration) {
 }
 
 void setLegSpeed(float rot_per_s) {
-  // gearing has 10/40 ratio
-  const float gearing = 10.0f / 44.0f;
+  
+  // chainwheel has 10/40 ratio
+  // planetary gearbox as 1:10 ratio
+  const float gearing = (10.0f / 40.0f) * (1.0f / 10.0f);
   //const float rpm_motor = 60.f * rot_per_s / gearing;
 
-  //uint16_t rpm_motor = 600; // ergibt 2 umrehungen pro sekunde ??
-//  uint16_t rpm_motor = 600;
-  uint16_t rpm_motor = 600;
+  //uint16_t rpm_motor = 600; // ergibt 2 umrehungen pro sekunde ?? 
+
+  // Serial.printf("GEARING: %f\n", gearing);
+
+  // theoretisch müssten sein:
+  // 0,5 rps - 1200 RPM
+  // 1 rps - 2400 RPM
+
+  uint16_t rpm_motor = (uint16_t) (60.0f * rot_per_s / gearing);
 
 
   const uint16_t value =  __builtin_bswap16(rpm_motor);
- // Serial.printf("LEG %x", value);
+//  Serial.printf("LEG RPM %d MB %x ", rpm_motor,value);
 
-  legController.writeSingleRegister(0x8005, value);
-
+  uint8_t result = legController.writeSingleRegister(0x8005, value);
+//  Serial.printf("RES %x \n", result);
 }
 
 const float LEG_MAX_SPEED = 0.5f; // quarter rotation per second
 const bool LEG_FORWARD = true;
 
 void legTaskFunction(void* parameter) {
-
-  legSerial.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, LEG_RX_PIN, LEG_TX_PIN);
+  Serial.printf("leg core %d\n", xPortGetCoreID());
+  // UART1
+  Serial1.begin(9600, SERIAL_8N1, LEG_RX_PIN, LEG_TX_PIN);
+ // legSerial.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, LEG_RX_PIN, LEG_TX_PIN);
   //legSerial.enableIntTx(true);
-  legController.begin(1, legSerial);
+  legController.begin(1, Serial1);
 
   bool armed = false;
-
-  // speed
-//  setLegTime(20, 0); // 2s to full speed
-//  vTaskDelay(100);
   setLegControl(false, LEG_FORWARD);
-  vTaskDelay(200);
-  setLegSpeed(LEG_MAX_SPEED);
-  vTaskDelay(200);
-  //setLegStartTorque(50);  // 0..255 - 10%
-  //vTaskDelay(100);
+  delay(50);
+  setLegStartTorque(50);  // 0..255 - 10%
+  delay(50);
+  // speed
+  // setLegTime(20, 0); // 2s to full speed
+  // delay(50);
 
   while(true) {
-    // todo: use drive speed
-    // abusing light signal for now
-    if(lightState) {
 
-      if(!armed) {
-        setLegControl(true, LEG_FORWARD);
-        armed=true;
-      }
-    } else {
-      if(armed) {
-        setLegControl(false, LEG_FORWARD);
-        armed=false;
-      }
+    switch (myState) {
+
+      Serial.printf("WTF STATE %d", myState);
+      
+      case STATE_IDLE: // probably remove that in the future
+      case STATE_BLUETOOTH_DRIVE:
+      case STATE_JOYSTICK_DRIVE:
+        if (!armed) {
+          setLegControl(true, LEG_FORWARD);
+          armed = true;
+        }
+        // tbd: make this dependent on drive speed (i.e. joystick)
+        if(lightState) {
+          setLegSpeed(LEG_MAX_SPEED);
+        } else {
+          setLegSpeed(0);
+        }
+        break;
+
+      default:
+        if(armed) {
+          setLegControl(false, LEG_FORWARD);
+          armed=false;
+        }
     }
-    vTaskDelay(200);
+ 
+    delay(500);
   }
 }
 
@@ -513,6 +533,11 @@ void odriveLoop(void *parameter) {
     }
 
     vTaskDelay(50);
+
+
+//    Serial.print("DC voltage: ");
+  //  Serial.println(odrive.getParameterAsFloat("vbus_voltage"));
+
   }
 }
 
@@ -536,6 +561,8 @@ void joystickTaskFunction(void *parameter) {
 // Arduino setup function. Runs in CPU 1
 void setup() {
 
+
+
   // Board LEDs
   pinMode(RED_LED, OUTPUT);
   pinMode(GREEN_LED, OUTPUT);
@@ -553,16 +580,20 @@ void setup() {
 
 
   xTaskCreate(odriveLoop, "odrive", 2048, NULL, 7, NULL);
+
   xTaskCreate(driveTaskFunction, "drive", 4096, NULL, 6, NULL);
   xTaskCreate(joystickTaskFunction, "joystick", 4096, NULL, 5, NULL);
-  xTaskCreate(
+  /*xTaskCreate(
     displayLoop,  // Function name of the task
     "display",    // Name of the task (e.g. for debugging)
     2048,         // Stack size (bytes)
     NULL,         // Parameter to pass
     1,            // Task priority
     NULL          // Task handle
-  );
+  );*/
+  xTaskCreatePinnedToCore(displayLoop, "display", 2048, NULL, 1,  NULL, 1);
+  
+
 
   xTaskCreate(lightLoop, "light", 2048, NULL, 2, NULL);
 
@@ -572,10 +603,12 @@ void setup() {
   Serial.printf("BD Addr: %2X:%2X:%2X:%2X:%2X:%2X\n", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
 
 
-  Serial.println("found ODrive");
 
-  Serial.print("DC voltage: ");
-  Serial.println(odrive.getParameterAsFloat("vbus_voltage"));
+
+  Serial.printf("pdMS %d", pdMS_TO_TICKS(1000));
+
+  Serial.printf("TICK RATE %d\n", configTICK_RATE_HZ);
+  
 
   pinMode(LEG_RX_PIN, INPUT);
   pinMode(LEG_TX_PIN, OUTPUT);
@@ -594,7 +627,11 @@ void setup() {
 
   xTaskCreate(bluetoothTaskFunction, "bluetooth", 4096, NULL, 4, NULL);
 
-  xTaskCreate(legTaskFunction, "leg", 4096, NULL, 3, NULL); 
+  xTaskCreatePinnedToCore(legTaskFunction, "leg", 4096, NULL, 3, NULL, 1); 
+  //xTaskCreate(legTaskFunction, "leg", 4096, NULL, 666 /*3*/, NULL); 
+
+
+
 
 }
 

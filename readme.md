@@ -6,12 +6,12 @@
 
 | LED | Bedeutung |
 | --- | --- |
-| weiß blinken | Fahrzeug nicht bereit |
-| weiß | Fahrzeug bereit (Drehschalter Mitte) |
+| rot blinken | Fahrzeug nicht bereit |
+| rot | Fahrzeug bereit (Drehschalter Mitte) |
 | grün | Fahrzeug fährt mit Vor-Ort Bedienung (Drehschalter links) |
 | blau | Fahrzeug fährt mit Fernbedienung (Drehschalter rechts) |
 | blau blinken | Fahrzeug Fernbedienung nicht verbunden (Drehschalter rechts) |
-| rot blinken | Fehler im Fahrzeug |
+| weiß | blinken | Fehler im Fahrzeug |
 
 ### Fahrzeug in Betrieb nehmen
 
@@ -32,13 +32,13 @@
 2. Aufsteigen
 3. Not-Aus lösen
 4. Drehschalter in Mittelstellung
-5. Prüfen: Status LED leuchtet weiß
+5. Prüfen: Status LED leuchtet rot
 6. Drehschalter nach **links**
 7. Prüfen: Status LED leutet grün
 8. Joystick betätigen: Fahrzeug bewegt sich
 9. Joystick loslassen: Fahrzeug bremt bis Stillstand
 10. Not-Aus betätigen: Fahrzeug schaltet ab, Radantrieb ist gehemmt
-11. Taster drücken: Licht schaltet ein/aus
+11. Taster drücken: Licht/Beine schaltet ein/aus
 
 ### Controller verbinden
 
@@ -51,13 +51,13 @@
 
 1. Not-Aus lösen
 2. Drehschalter in Mittelstellung
-3. Prüfen: Status LED leuchtet weiß
+3. Prüfen: Status LED leuchtet rot
 4. Drehschalter nach **rechts**
 5. Prüfen: Status LED leutet blau
 6. Falls LED blau blinkt, dann Controller verbinden
 7. Joystick betätigen: Fahrzeug bewegt sich
 8. Joystick loslassen: Fahrzeug bremt bis Stillstand
-9. Taste X drücken: Licht schaltet ein/aus
+9. Taste X drücken: Licht/Beine schaltet ein/aus
 
 ### Fahrzeug laden
 
