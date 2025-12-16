@@ -655,13 +655,11 @@ void loop() {
 
     case STATE_UNDEFINED:
     case STATE_ERROR:
+    case STATE_IDLE:
       // must have main switch to neutral position first
       if (!switchJoystick && !switchBluetooth) {
         setState(STATE_IDLE);
       }
-      break;
-
-    case STATE_IDLE:
       if (switchJoystick) {
         setState(STATE_JOYSTICK_DRIVE);
       } else if (switchBluetooth) {
