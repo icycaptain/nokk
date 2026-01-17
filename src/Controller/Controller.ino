@@ -25,6 +25,8 @@ const uint8_t ODRIVE_TX_PIN = 17; // implicit by using UART2
 // Serial 1 mapped to pins for modbus
 const uint8_t LEG_RX_PIN = 27;
 const uint8_t LEG_TX_PIN = 14;
+//const uint8_t LEG_RX_PIN = 32;
+//const uint8_t LEG_TX_PIN = 33;
 
 const uint8_t PS2_DAT_PIN = 19;  //MISO  19
 const uint8_t PS2_CMD_PIN = 23;  //MOSI  23
@@ -190,6 +192,30 @@ void readJoystick(int32_t* x, int32_t* y) {
   *y = constrain(yCalib, -100, 100);
 }
 
+void turnOnLeg() {
+  uint8_t cmd[] = {0x01, 0x06, 0x80, 0x00, 0x0B, 0x04, 0xA6, 0xF9};
+  Serial1.write(cmd, 8);
+  delay(5);
+}
+
+void turnOffLeg() {
+  uint8_t cmd[] = {0x01, 0x06, 0x80, 0x00, 0x0A, 0x04, 0xA7, 0x69};
+  Serial1.write(cmd, 8);
+  delay(5);
+}
+
+void setTorqueLeg() {
+  uint8_t cmd[] = {0x01, 0x06, 0x80, 0x02, 0x32, 0x00, 0x14, 0xAA};
+  Serial1.write(cmd, 8);
+  delay(5);
+}
+
+void setSpeedLeg() {
+  uint8_t cmd[] = {0x01, 0x06, 0x80, 0x05, 0xB0, 0x04, 0xC4, 0x08};
+  Serial1.write(cmd, 8);
+  delay(5);
+}
+
 void setup() {
   Serial.begin(115200);
 
@@ -233,29 +259,38 @@ void setup() {
 
   // ODrive
   myOdriveSerial.begin(115200, SERIAL_8N1, ODRIVE_RX_PIN, ODRIVE_TX_PIN);
-
-  pinMode(LEG_RX_PIN, INPUT);
-  pinMode(LEG_TX_PIN, OUTPUT);
+ 
+  //pinMode(LEG_RX_PIN, INPUT);
+  //pinMode(LEG_TX_PIN, OUTPUT);
   Serial1.begin(9600, SERIAL_8N1, LEG_RX_PIN, LEG_TX_PIN);
-  legController.begin(1, Serial1);
 
-  uint8_t result = setLegControl(false, LEG_FORWARD);
-  legConnected = (result == legController.ku8MBSuccess);
+  turnOffLeg();
+  setTorqueLeg();
+  
+//  legController.begin(1, Serial1);
 
-  if(legConnected)
-  {
-    setLegStartTorque(50);  // 0..255 - 10%
-  }
+  //uint8_t result = setLegControl(false, LEG_FORWARD);
+  //legConnected = (result == legController.ku8MBSuccess);
+  //legConnected = 0; // omg
+
+  //if(legConnected)
+  //{
+  //setLegStartTorque(50);  // 0..255 - 10%
+  //}
+
+  setSpeedLeg();
+
+  //uint8_t result = setLegControl(true, LEG_FORWARD);
+
 }  
+
+bool odriveArmed = false;
+bool legArmed = false;
 
 
 void loop() {
 
   TickType_t lastWakeTime = xTaskGetTickCount();
-
-
-  bool odriveArmed = false;
-  bool legArmed = false;
 
   // Read main rotary switch
   int switchLocal = (digitalRead(SWITCH_LOCAL_PIN) == LOW);
@@ -303,24 +338,34 @@ void loop() {
       }
   }
 
-  if(legConnected) {
-    // Leg setpoint control
-    switch (myState) {
-      case STATE_LOCAL_DRIVE:
-      case STATE_REMOTE_DRIVE:
-        if (!legArmed) {
-          setLegControl(true, LEG_FORWARD);
-          legArmed = true;
-        }
-        setLegSpeed(legSpeed);
-        break;
-      default:
-        if(legArmed) {
-          setLegControl(false, LEG_FORWARD);
-          legArmed=false;
-        }
-        setLegSpeed(0.0f);
-    }
+  // Leg setpoint control
+  switch (myState) {
+    case STATE_LOCAL_DRIVE:
+    case STATE_REMOTE_DRIVE:
+      if(legSpeed > 0) {
+        turnOnLeg();
+      }
+      else 
+      {
+        turnOffLeg();
+      }
+  /*    if (!legArmed) {
+        turnOnLeg();
+        //setLegControl(true, LEG_FORWARD);
+        legArmed = true;
+      }
+*/
+            break;
+    default:
+      turnOffLeg();
+/*      if(legArmed) {
+        turnOffLeg();
+        setLegControl(false, LEG_FORWARD);
+        legArmed=false;
+      }
+*/
+
+      //setLegSpeed(0.0f);
   }
 
   // Serial plotter
