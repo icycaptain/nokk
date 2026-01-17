@@ -1,6 +1,5 @@
 #include <ODriveUART.h>
 #include <HardwareSerial.h>
-#include <ModbusMaster.h>
 #include <PS2X_lib.h>
 
 // PIN ASSIGNMENT
@@ -51,7 +50,6 @@ const uint8_t STATE_ERROR = 15;              // white flashing
 
 // ### Global state variables ####
 int myState = STATE_UNDEFINED;
-bool legConnected = true;
 
 // ## Global controller objects
 //#define NUM_GAMEPADS 1
@@ -61,7 +59,8 @@ byte controllerType = 0;
 
 HardwareSerial myOdriveSerial(2); // RX:16, TX: 17
 ODriveUART odrive(myOdriveSerial);
-ModbusMaster legController;
+
+const int REMOTE_VEL_LIMIT = 75; // % remote controller speed limit compared to local drive (lower than 100)
 
 // Vehicle properties
 const float MAX_VEL = 2.22f;   // m/s (8 km/h)
@@ -110,7 +109,7 @@ void readRemoteJoystick(int32_t* x, int32_t* y) {
     uint8_t xRaw = ps2x.Analog(PSS_RX);
     uint8_t yRaw = ps2x.Analog(PSS_RY);
 
-    *x = map(xRaw, 0, 255, -100, 100); // contrain not needed because its a uint8
+    *x = map(xRaw, 0, 255, -REMOTE_VEL_LIMIT, REMOTE_VEL_LIMIT); // contrain not needed because its a uint8
     *y = map(yRaw, 0, 255, 100, -100); // invert
   }
 }
@@ -133,50 +132,7 @@ void setStatusLED() {
   analogWrite(RED_LED_PIN, 255 * redChannel / scale);     // 4000 mCd
   analogWrite(GREEN_LED_PIN, 20 * greenChannel / scale);  // 8000 mCd
   analogWrite(BLUE_LED_PIN, 150 * blueChannel / scale);   // 5000 mCd
-
 }
-
-// we do the forward/backward logic here
-// nokk forward -> motor backward
-// nokk backward -> motor forward
-uint8_t setLegControl(bool enable, bool forward) {
-  const uint16_t pole_pairs = 0x0004; // however  specs says 4 pole pairs
-  const bool brake = false;
-  const uint16_t ctrl = 
-    ((enable)  ? 0x0100 : 0x0000) |
-    ((forward) ? 0x0200 : 0x0000) | 
-    ((brake)   ? 0x0400 : 0x0000) |
-    0x0800; // always RS485
-
-  const uint16_t value = ctrl | pole_pairs;
-
-  //Serial.printf("LEG CTRL %x ", value);
-  return legController.writeSingleRegister(0x8000, value);
-  //Serial.printf("RES %x\n", result);
-}
-
-uint8_t setLegStartTorque(uint8_t torque) {
-  return legController.writeSingleRegister(0x8002, (torque << 8) | (0x00));
-}
-
-uint8_t setLegTime(uint8_t acceleration, uint8_t deceleration) {
-  return legController.writeSingleRegister(0x8003, (acceleration << 8) | (deceleration));
-}
-
-uint8_t setLegSpeed(float rot_per_s) {
-  // chainwheel has 10/40 ratio
-  // planetary gearbox as 1:10 ratio
-  const float gearing = (10.0f / 40.0f) * (1.0f / 10.0f);
-
-  // theoretisch müssten sein:
-  // 0,5 rps - 1200 RPM
-  // 1 rps - 2400 RPM
-  uint16_t rpm_motor = (uint16_t) (60.0f * rot_per_s / gearing);
-
-  const uint16_t value =  __builtin_bswap16(rpm_motor);
-  uint8_t result = legController.writeSingleRegister(0x8005, value);
-}
-
 
 void readJoystick(int32_t* x, int32_t* y) {
   uint16_t xRaw = analogRead(JOYSTICK_X_AXIS_PIN);
@@ -266,27 +222,10 @@ void setup() {
 
   turnOffLeg();
   setTorqueLeg();
-  
-//  legController.begin(1, Serial1);
-
-  //uint8_t result = setLegControl(false, LEG_FORWARD);
-  //legConnected = (result == legController.ku8MBSuccess);
-  //legConnected = 0; // omg
-
-  //if(legConnected)
-  //{
-  //setLegStartTorque(50);  // 0..255 - 10%
-  //}
-
   setSpeedLeg();
-
-  //uint8_t result = setLegControl(true, LEG_FORWARD);
-
 }  
 
 bool odriveArmed = false;
-bool legArmed = false;
-
 
 void loop() {
 
@@ -349,27 +288,13 @@ void loop() {
       {
         turnOffLeg();
       }
-  /*    if (!legArmed) {
-        turnOnLeg();
-        //setLegControl(true, LEG_FORWARD);
-        legArmed = true;
-      }
-*/
-            break;
+      break;
     default:
       turnOffLeg();
-/*      if(legArmed) {
-        turnOffLeg();
-        setLegControl(false, LEG_FORWARD);
-        legArmed=false;
-      }
-*/
-
-      //setLegSpeed(0.0f);
   }
 
   // Serial plotter
-  Serial.printf("X:%d Y:%d A0:%f A1:%f L:%f %d\n", xInput, yInput, axisSpeed0, axisSpeed1, legSpeed, legConnected);
+  // Serial.printf("X:%d Y:%d A0:%f A1:%f L:%f %d\n", xInput, yInput, axisSpeed0, axisSpeed1, legSpeed, legConnected);
   
   vTaskDelayUntil(&lastWakeTime, 100); // 100ms cycle
 }
