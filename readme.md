@@ -79,23 +79,23 @@ Wenn das System nicht versorgt wird (S1 oder S2 offen), werden beide Hauptantrie
 
 ### Pinbelegung ESP32 Board
 
-| Belegung  | PIN       |       | PIN           | Belegung  |
-| ---       | ---       | ---   | ---           | ---       |
-| -         | EN        |       | GPIO23        | Modbus TX |
-| -         | GPIO36    |       | GPIO22        | Modbus RX |
-| -         | GPIO39    |       | GPIO1         | - |
-| -         | GPIO34    |       | GPIO3         | - |
-| -         | GPIO35    |       | GPIO21        | - |
-| Drehschalter links    | GPIO32 |  | GPIO19        | - |
-| Drehschalter rechts   | GPIO33 |  | GPIO18        | - |
-| (Reserve)         | GPIO25 |  | GPIO5         | Status LED grün |
-| PWM Licht         | GPIO26 |  | GPIO17        | UART ODESC TX |
-| Joystick unten    | GPIO27 |  | GPIO16        | UART ODESC RX |
-| Joystick oben     | GPIO14 |  | GPIO4         | Status LED rot |
-| Joystick links    | GPIO12 |  | GPIO2         | Status LED blau |
-| Joystick rechts   | GPIO13 |  | GPIO15        | Taster |
-| 0V (Eingang)      | GND    |  | GND           | 0V (LED) |
-| 5V (Eingang)      | VIN    |  | 3.3V          | 3.3V (LED) |
+| Belegung              | Ader  | PIN       |       | PIN           | Ader  | Belegung          |
+| ---                   | ---   | ---       | ---   | ---           | ---   | ---               |
+| -                     | -     | EN        |       | GPIO23        | OR    | Pad-2 (MOSI)      |
+| -                     | -     | GPIO36    |       | GPIO22        | -     | -                 |
+| -                     | -     | GPIO39    |       | GPIO1         | -     | (blockiert UART0) |
+| Joystick analog X     | RD    | GPIO34    |       | GPIO3         | -     | (blockiert UART0) |
+| Joystick analog Y     | WH    | GPIO35    |       | GPIO21        | RD    | Taster            |
+| -                     | -     | GPIO32    |       | GPIO19        | GN    | Pad-1 (MISO)      |
+| -                     | -     | GPIO33    |       | GPIO18        | YE    | Pad-7 (CLOCK)     |
+| Reserve               | WH    | GPIO25    |       | GPIO5         | OR    | Pad-6 (CS)        |
+| PWM Licht             | BU    | GPIO26    |       | GPIO17        | WH    | UART ODESC TX     |
+| UART Modbus RX        | WH    | GPIO27    |       | GPIO16        | OR    | UART ODESC RX     |
+| UART Modbus TX        | GN    | GPIO14    |       | GPIO4         | RD    | Status LED rot    |
+| Drehschalter links    | BK    | GPIO12    |       | GPIO2         | BU    | Status LED blau   |
+| Drehschalter rechts   | BK/WH | GPIO13    |       | GPIO15        | GN    | Status LED grün   |
+| 0V (Eingang)          | BN    | GND       |       | GND           | BK    | 0V                |
+| 5V (Eingang)          | WH    | VIN       |       | 3.3V          | RD    | 3.3V              |
 
 ### Pinbelegung RJ-45 Anschlussleitung
 
