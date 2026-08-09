@@ -60,7 +60,8 @@ byte controllerType = 0;
 HardwareSerial myOdriveSerial(2); // RX:16, TX: 17
 ODriveUART odrive(myOdriveSerial);
 
-const int REMOTE_VEL_LIMIT = 75; // % remote controller speed limit compared to local drive (lower than 100)
+const int REMOTE_VEL_LIMIT = 50; // % remote controller speed limit compared to local drive (lower than 100)
+const int REMOTE_YAW_LIMIT = 75; // % remote controller yawd limit compared to local drive (lower than 100)
 
 // Vehicle properties
 const float MAX_VEL = 2.22f;   // m/s (8 km/h)
@@ -109,8 +110,8 @@ void readRemoteJoystick(int32_t* x, int32_t* y) {
     uint8_t xRaw = ps2x.Analog(PSS_RX);
     uint8_t yRaw = ps2x.Analog(PSS_RY);
 
-    *x = map(xRaw, 0, 255, -REMOTE_VEL_LIMIT, REMOTE_VEL_LIMIT); // contrain not needed because its a uint8
-    *y = map(yRaw, 0, 255, 100, -100); // invert
+    *x = map(xRaw, 0, 255, -REMOTE_YAW_LIMIT, REMOTE_YAW_LIMIT); // contrain not needed because its a uint8
+    *y = map(yRaw, 0, 255, REMOTE_VEL_LIMIT, -REMOTE_VEL_LIMIT); // invert
   }
 }
 
