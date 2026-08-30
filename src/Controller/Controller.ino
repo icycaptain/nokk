@@ -2,6 +2,8 @@
 #include <HardwareSerial.h>
 #include <PS2X_lib.h>
 
+#include <Dmx_ESP32.h>
+
 #include "AudioTools.h"
 #include "FS.h"
 #include "LittleFS.h"
@@ -17,15 +19,22 @@ const uint8_t JOYSTICK_Y_AXIS_PIN = 35;
 const uint8_t SWITCH_LOCAL_PIN = 12;
 const uint8_t SWITCH_REMOTE_PIN = 13;
 
-const uint8_t TOGGLE_PIN = 14; // generic toggle
+const uint8_t TOGGLE_PIN = 21; // generic toggle
 
 
 const uint8_t ODRIVE_RX_PIN = 16; // implicit by using UART2
 const uint8_t ODRIVE_TX_PIN = 17; // implicit by using UART2
 
 // Serial 1 mapped to pins for modbus
-const uint8_t LEG_RX_PIN = 27;
-const uint8_t LEG_TX_PIN = 14;
+//const uint8_t LEG_RX_PIN = 27;
+//const uint8_t LEG_TX_PIN = 14;
+
+// Pin-Definitionen für den ESP32
+const uint8_t DMX_TX_PIN = 14;   // Angeschlossen an DI (Driver Input) des MAX485
+//const int rxPin = 16;   // Angeschlossen an RO (Receiver Output) des MAX485 (optional)
+//const int rtsPin = 4;   // Angeschlossen an DE/RE (Richtungssteuerung) des MAX485
+
+
 
 // I2S Audio pins
 const uint8_t I2S_DIN_PIN = 33;   
@@ -90,10 +99,15 @@ const float RIGHT_DIR = 1.0f;
 const float MAX_VEHICLE_THRUST = 90.0f; // N  (divide by vehicle weight to get accelleration   
 const float MAX_VEHICLE_TORQUE = 15.0f;  // Nm (divide by vehicle inertia for get rotational acceleation 
 
-
+/*
 // Leg Speed
 const float LEG_MAX_SPEED = 0.5f; // half rotation per second
 const bool LEG_FORWARD = true;
+*/
+
+#define DMX_PORT &Serial1
+#define TX_ENABLE -1
+dmxTx dmxSend(DMX_PORT, DMX_TX_PIN, TX_ENABLE, -1, LOW); // , LED_GREEN, LOW);
 
 
 TaskHandle_t audioTask;
@@ -146,7 +160,9 @@ void driveTorque(int32_t x, int32_t y, float* axisTorque0, float* axisTorque1, f
   //Serial.printf("F:%f M:%f F0:%f F1:%f M0:%f M1:%f\n", vehicleThrust, vehicleTorque, thrustLeft, thrustRight, torqueLeft, torqueRight);
 
 
-  *legSpeed = ((abs(realX) > 15) || (abs(realY) > 15)) ? LEG_MAX_SPEED : 0.0f;
+  /* 
+    *legSpeed = ((abs(realX) > 15) || (abs(realY) > 15)) ? LEG_MAX_SPEED : 0.0f;
+   */
 }
 
 
@@ -216,6 +232,7 @@ void readJoystick(int32_t* x, int32_t* y) {
   *y = constrain(yCalib, -100, 100);
 }
 
+/*
 void turnOnLeg() {
   uint8_t cmd[] = {0x01, 0x06, 0x80, 0x00, 0x0B, 0x04, 0xA6, 0xF9};
   Serial1.write(cmd, 8);
@@ -239,6 +256,7 @@ void setSpeedLeg() {
   Serial1.write(cmd, 8);
   delay(5);
 }
+*/
 
 void setup() {
   Serial.begin(115200);
@@ -283,13 +301,21 @@ void setup() {
   // ODrive
   myOdriveSerial.begin(115200, SERIAL_8N1, ODRIVE_RX_PIN, ODRIVE_TX_PIN);
  
+ /*
   //pinMode(LEG_RX_PIN, INPUT);
   //pinMode(LEG_TX_PIN, OUTPUT);
   Serial1.begin(9600, SERIAL_8N1, LEG_RX_PIN, LEG_TX_PIN);
-
   turnOffLeg();
   setTorqueLeg();
   setSpeedLeg();
+  */
+
+  Serial1.begin(250000, SERIAL_8N2, -1, DMX_TX_PIN);
+  if (!dmxSend.configure()) {
+    Serial.println("DMX-Konfiguration fehlgeschlagen oder bereits aktiv!");
+  } else {
+    Serial.println("DMX erfolgreich auf Serial1 gestartet.");
+  }
 
 
   // audio init
@@ -342,6 +368,17 @@ void loop() {
 
   setStatusLED();
 
+  bool light = (digitalRead(TOGGLE_PIN) == LOW);
+  if(light) {
+    dmxSend.write(200, 2);
+  }
+  else {
+    dmxSend.write(0,1);
+    dmxSend.write(0,2);
+    dmxSend.write(0,3);
+    dmxSend.write(0,4);
+  }
+  
   int32_t xLocalJoystick, yLocalJoystick;
   readJoystick(&xLocalJoystick, &yLocalJoystick);
 
@@ -386,7 +423,7 @@ void loop() {
       }
   }
 
-  // Leg setpoint control
+  /* Leg setpoint control
   switch (myState) {
     case STATE_LOCAL_DRIVE:
     case STATE_REMOTE_DRIVE:
@@ -401,6 +438,15 @@ void loop() {
     default:
       turnOffLeg();
   }
+  */
+  /*
+  dmxSend.write(0, 1);
+  dmxSend.write(0, 2);
+  dmxSend.write(0, 3);
+  dmxSend.write(0, 4);
+  */
+
+  dmxSend.transmit();
   
   vTaskDelayUntil(&lastWakeTime, 100); // 100ms cycle
 }
@@ -424,7 +470,6 @@ void audioLoop(void* parameter) {
       if (audioFile && audioFile.available()) {
         copier.copy();
       } else {
-        //Serial.println("Wiedergabe beendet. Wechsle dauerhaft in den Leerlauf...");
         if (audioFile) audioFile.close();
         playAudio = false;
       }
