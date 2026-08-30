@@ -2,6 +2,10 @@
 #include <HardwareSerial.h>
 #include <PS2X_lib.h>
 
+#include "AudioTools.h"
+#include "FS.h"
+#include "LittleFS.h"
+
 // PIN ASSIGNMENT
 const uint8_t BLUE_LED_PIN = 2;
 const uint8_t RED_LED_PIN = 4;
@@ -13,8 +17,6 @@ const uint8_t JOYSTICK_Y_AXIS_PIN = 35;
 const uint8_t SWITCH_LOCAL_PIN = 12;
 const uint8_t SWITCH_REMOTE_PIN = 13;
 
-const uint8_t AUDIO_OUTPUT_PIN = 25; // blue/white
-const uint8_t LIGHT_PWM_PIN = 26; // blue 
 const uint8_t TOGGLE_PIN = 14; // generic toggle
 
 
@@ -24,8 +26,11 @@ const uint8_t ODRIVE_TX_PIN = 17; // implicit by using UART2
 // Serial 1 mapped to pins for modbus
 const uint8_t LEG_RX_PIN = 27;
 const uint8_t LEG_TX_PIN = 14;
-//const uint8_t LEG_RX_PIN = 32;
-//const uint8_t LEG_TX_PIN = 33;
+
+// I2S Audio pins
+const uint8_t I2S_DIN_PIN = 33;   
+const uint8_t I2S_LRC_PIN = 32;   
+const uint8_t I2S_BCLK_PIN = 25;  
 
 const uint8_t PS2_DAT_PIN = 19;  //MISO  19
 const uint8_t PS2_CMD_PIN = 23;  //MOSI  23
@@ -90,32 +95,23 @@ const float MAX_VEHICLE_TORQUE = 15.0f;  // Nm (divide by vehicle inertia for ge
 const float LEG_MAX_SPEED = 0.5f; // half rotation per second
 const bool LEG_FORWARD = true;
 
-/*
-// Map X/Y Input to setpoints for axis0/axis1/leg
-void drive(int32_t x, int32_t y, float* axisSpeed0, float* axisSpeed1, float *legSpeed) {
 
-  // Zero position threshold: filter mimimum joystick movement
-  float realX = (abs(x) < 15) ? 0.0f : x;
-  float realY = (abs(y) < 15) ? 0.0f : y;
+TaskHandle_t audioTask;
 
-  // we normalize realX/Y values into a 100 unit circle (while turning, there is no need for full speed)
-  float length = sqrt(sq(realX) + sq(realY));
-  float scale = (length > 100) ? 100.0/length : 1.0;
-  float normalX = scale*realX;
-  float normalY = scale*realY;
-  
-  float desiredVel = (MAX_VEL * normalY) / 100.0;
-  float desiredYaw = (MAX_YAW * -normalX) / 100.0;
+I2SStream i2s;
+VolumeStream volume(i2s); 
+File audioFile;
+WAVDecoder decoder;
+StreamCopy copier(volume, audioFile); 
 
-  float vel_left = VEL_COEF * desiredVel - YAW_COEF * desiredYaw;
-  float vel_right = VEL_COEF * desiredVel + YAW_COEF * desiredYaw;
+// Der Name Ihrer einzelnen Datei
+const char* singleFile = "/R2D2-yeah.wav";
 
-  // return (vel_left * LEFT_DIR, vel_right * RIGHT_DIR)
-  *axisSpeed0 = vel_left * LEFT_DIR;
-  *axisSpeed1 = vel_right * RIGHT_DIR;
+const char *audioFilenames[] = {"/R2D2-yeah.wav", "/swvader02.wav", "/blaster-firing.wav", "/chewbacca.wav"};
 
-  *legSpeed = ((abs(realX) > 15) || (abs(realY) > 15)) ? LEG_MAX_SPEED : 0.0f;
-}*/
+int audioFileSelected = 0;
+bool playAudio = false;
+
 
 
 // Map X/Y Input to setpoints for axis0/axis1/leg
@@ -147,7 +143,7 @@ void driveTorque(int32_t x, int32_t y, float* axisTorque0, float* axisTorque1, f
   *axisTorque0 = torqueLeft * LEFT_DIR;
   *axisTorque1 = torqueRight * RIGHT_DIR;
 
-  Serial.printf("F:%f M:%f F0:%f F1:%f M0:%f M1:%f\n", vehicleThrust, vehicleTorque, thrustLeft, thrustRight, torqueLeft, torqueRight);
+  //Serial.printf("F:%f M:%f F0:%f F1:%f M0:%f M1:%f\n", vehicleThrust, vehicleTorque, thrustLeft, thrustRight, torqueLeft, torqueRight);
 
 
   *legSpeed = ((abs(realX) > 15) || (abs(realY) > 15)) ? LEG_MAX_SPEED : 0.0f;
@@ -160,6 +156,26 @@ void readRemoteJoystick(int32_t* x, int32_t* y) {
 
     uint8_t xRaw = ps2x.Analog(PSS_RX);
     uint8_t yRaw = ps2x.Analog(PSS_RY);
+
+    if (ps2x.ButtonPressed(PSB_PAD_UP)) {
+      audioFileSelected = 0;
+      playAudio = true;
+    }
+
+    if (ps2x.ButtonPressed(PSB_PAD_DOWN)) {
+      audioFileSelected = 1;
+      playAudio = true;
+    }
+    
+    if (ps2x.ButtonPressed(PSB_PAD_LEFT)) {
+      audioFileSelected = 2;
+      playAudio = true;
+    }
+
+    if (ps2x.ButtonPressed(PSB_PAD_RIGHT)) {
+      audioFileSelected = 3;
+      playAudio = true;
+    }
 
     *x = map(xRaw, 0, 255, -REMOTE_YAW_LIMIT, REMOTE_YAW_LIMIT); // contrain not needed because its a uint8
     *y = map(yRaw, 0, 255, REMOTE_VEL_LIMIT, -REMOTE_VEL_LIMIT); // invert
@@ -236,8 +252,6 @@ void setup() {
   pinMode(SWITCH_REMOTE_PIN, INPUT_PULLUP);
 
   pinMode(TOGGLE_PIN, INPUT_PULLUP);
-  pinMode(LIGHT_PWM_PIN, OUTPUT);
-  pinMode(AUDIO_OUTPUT_PIN, OUTPUT);
 
   int tryNum = 0;
   int error = -1;
@@ -278,9 +292,37 @@ void setup() {
   setSpeedLeg();
 
 
+  // audio init
+    if(!LittleFS.begin()){
+    Serial.println("LittleFS Mount Failed!");
+    return;
+  }
 
-  tone(AUDIO_OUTPUT_PIN, 100, 1000);
+  // I2S für Stereo initialisieren
+  auto cfg = i2s.defaultConfig(TX_MODE);
+  cfg.port_no = 1; 
+  cfg.pin_bck = I2S_BCLK_PIN;  
+  cfg.pin_ws = I2S_LRC_PIN;    
+  cfg.pin_data = I2S_DIN_PIN;   
+  cfg.sample_rate = 11025; // Bei Bedarf auf 44100 ändern
+  cfg.channels = 2;        
+  cfg.bits_per_sample = 16;
+  i2s.begin(cfg);
 
+  // Lautstärke einstellen
+  volume.begin(cfg); 
+  volume.setVolume(1.0); //0.2); 
+
+
+
+  xTaskCreatePinnedToCore(
+    audioLoop, /* Function to implement the task */
+      "Audio", /* Name of the task */
+      10000,  /* Stack size in words */
+      NULL,  /* Task input parameter */
+      0,  /* Priority of the task */
+      &audioTask,  /* Task handle. */
+      1); // Don´t mess with core-0 :-D 
 
 }  
 
@@ -359,9 +401,38 @@ void loop() {
     default:
       turnOffLeg();
   }
-
-  // Serial plotter
-  // Serial.printf("X:%d Y:%d A0:%f A1:%f L:%f %d\n", xInput, yInput, axisSpeed0, axisSpeed1, legSpeed, legConnected);
   
   vTaskDelayUntil(&lastWakeTime, 100); // 100ms cycle
+}
+
+void audioLoop(void* parameter) {
+  while(true) {
+
+    if(playAudio) {
+
+      if(!audioFile) {
+        // Loading audiofile
+        audioFile = LittleFS.open(audioFilenames[audioFileSelected], "r");
+        if (!audioFile) {
+          Serial.printf("Fehler: Konnte %s nicht oeffnen!\n", singleFile);
+          return;
+        }
+        copier.begin(volume, audioFile);
+      } 
+
+      // Kopiere Daten, solange die Datei noch nicht zu Ende ist
+      if (audioFile && audioFile.available()) {
+        copier.copy();
+      } else {
+        //Serial.println("Wiedergabe beendet. Wechsle dauerhaft in den Leerlauf...");
+        if (audioFile) audioFile.close();
+        playAudio = false;
+      }
+
+      // delay for next copy
+      delay(5);
+    } else { // !playAudio
+      delay(100);
+    }
+  }
 }
