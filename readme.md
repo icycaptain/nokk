@@ -81,21 +81,21 @@ Wenn das System nicht versorgt wird (S1 oder S2 offen), werden beide Hauptantrie
 
 | Belegung              | Ader  | PIN       |       | PIN           | Ader  | Belegung          |
 | ---                   | ---   | ---       | ---   | ---           | ---   | ---               |
-| -                     | -     | EN        |       | GPIO23        | OR    | Pad-2 (MOSI)      |
+| -                     | -     | EN        |       | GPIO23        | OG    | Pad-2 (MOSI)      |
 | -                     | -     | GPIO36    |       | GPIO22        | -     | -                 |
 | -                     | -     | GPIO39    |       | GPIO1         | -     | (blockiert UART0) |
 | Joystick analog X     | RD    | GPIO34    |       | GPIO3         | -     | (blockiert UART0) |
 | Joystick analog Y     | WH    | GPIO35    |       | GPIO21        | RD    | Taster            |
-| -                     | -     | GPIO32    |       | GPIO19        | GN    | Pad-1 (MISO)      |
-| -                     | -     | GPIO33    |       | GPIO18        | YE    | Pad-7 (CLOCK)     |
-| Reserve               | WH    | GPIO25    |       | GPIO5         | OR    | Pad-6 (CS)        |
-| PWM Licht             | BU    | GPIO26    |       | GPIO17        | WH    | UART ODESC TX     |
-| UART Modbus RX        | WH    | GPIO27    |       | GPIO16        | OR    | UART ODESC RX     |
+| I2S LRC               | GN    | GPIO32    |       | GPIO19        | GN    | Pad-1 (MISO)      |
+| I2S DIN               | OG    | GPIO33    |       | GPIO18        | YE    | Pad-7 (CLOCK)     |
+| I2S BCLK              | YE    | GPIO25    |       | GPIO5         | OG    | Pad-6 (CS)        |
+| -                     | -     | GPIO26    |       | GPIO17        | WH    | UART ODESC TX     |
+| UART Modbus RX        | WH    | GPIO27    |       | GPIO16        | OG    | UART ODESC RX     |
 | UART Modbus TX        | GN    | GPIO14    |       | GPIO4         | RD    | Status LED rot    |
 | Drehschalter links    | BK    | GPIO12    |       | GPIO2         | BU    | Status LED blau   |
 | Drehschalter rechts   | BK/WH | GPIO13    |       | GPIO15        | GN    | Status LED grün   |
-| 0V (Eingang)          | BN    | GND       |       | GND           | BK    | 0V                |
-| 5V (Eingang)          | WH    | VIN       |       | 3.3V          | RD    | 3.3V              |
+| 0V (Eingang)          | WH    | GND       |       | GND           | BK    | 0V                |
+| 5V (Eingang)          | BN    | VIN       |       | 3.3V          | RD    | 3.3V              |
 
 ### Pinbelegung RJ-45 Anschlussleitung
 
@@ -107,5 +107,13 @@ Wenn das System nicht versorgt wird (S1 oder S2 offen), werden beide Hauptantrie
 | 4 | Blau | PWM Licht |
 | 5 | Blau/Weiß | (Reserve) |
 | 6 | Grün | Modbus RS485 B- |
-| 7 | Braun/weiß | 5V (Eingang) |
-| 8 | Braun | 0V (Eingang) |
+| 7 | Braun/weiß | 0V (Eingang) |
+| 8 | Braun | 5V (Eingang) |
+
+## Auslegung
+
+| Kenngröße | Wert |
+| --- | --- |
+| Raddurchmesser | 0,215 m |
+| Maximales Drehmoment | 5 Nm |
+| Schubkraft pro Rad | 10 N |

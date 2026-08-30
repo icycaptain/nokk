@@ -13,7 +13,7 @@ const uint8_t JOYSTICK_Y_AXIS_PIN = 35;
 const uint8_t SWITCH_LOCAL_PIN = 12;
 const uint8_t SWITCH_REMOTE_PIN = 13;
 
-const uint8_t UNUSED_OUTPUT_PIN = 25; // blue/white
+const uint8_t AUDIO_OUTPUT_PIN = 25; // blue/white
 const uint8_t LIGHT_PWM_PIN = 26; // blue 
 const uint8_t TOGGLE_PIN = 14; // generic toggle
 
@@ -60,23 +60,37 @@ byte controllerType = 0;
 HardwareSerial myOdriveSerial(2); // RX:16, TX: 17
 ODriveUART odrive(myOdriveSerial);
 
-const int REMOTE_VEL_LIMIT = 50; // % remote controller speed limit compared to local drive (lower than 100)
-const int REMOTE_YAW_LIMIT = 75; // % remote controller yawd limit compared to local drive (lower than 100)
+const int REMOTE_VEL_LIMIT = 100;
+const int REMOTE_YAW_LIMIT = 100;
+
+//const int REMOTE_VEL_LIMIT = 50; // % remote controller speed limit compared to local drive (lower than 100)
+//const int REMOTE_YAW_LIMIT = 75; // % remote controller yawd limit compared to local drive (lower than 100)
 
 // Vehicle properties
 const float MAX_VEL = 2.22f;   // m/s (8 km/h)
 const float MAX_YAW = 0.8f;    // turns/s
+const float WHEEL_DIAMETER = 0.2159f;  // m 
+const float WHEEL_RADIUS = WHEEL_DIAMETER / 2.0f; // m
+
+const float WHEEL_SPACING = 1.0f; // m
+const float CENTER_DISTANCE = WHEEL_SPACING / 2.0f; // m
+
+
 const float WHEEL_PERIMETER = 678.3f;  // mm   // Pi() * 215.9
-const float WHEEL_SPACING = 1000.0f;   // mm
 const float VEL_COEF = 1000 / WHEEL_PERIMETER;
 const float YAW_COEF = WHEEL_SPACING / WHEEL_PERIMETER;
 const float LEFT_DIR = -1.0f;
 const float RIGHT_DIR = 1.0f;
 
+const float MAX_VEHICLE_THRUST = 90.0f; // N  (divide by vehicle weight to get accelleration   
+const float MAX_VEHICLE_TORQUE = 15.0f;  // Nm (divide by vehicle inertia for get rotational acceleation 
+
+
 // Leg Speed
 const float LEG_MAX_SPEED = 0.5f; // half rotation per second
 const bool LEG_FORWARD = true;
 
+/*
 // Map X/Y Input to setpoints for axis0/axis1/leg
 void drive(int32_t x, int32_t y, float* axisSpeed0, float* axisSpeed1, float *legSpeed) {
 
@@ -101,7 +115,44 @@ void drive(int32_t x, int32_t y, float* axisSpeed0, float* axisSpeed1, float *le
   *axisSpeed1 = vel_right * RIGHT_DIR;
 
   *legSpeed = ((abs(realX) > 15) || (abs(realY) > 15)) ? LEG_MAX_SPEED : 0.0f;
+}*/
+
+
+// Map X/Y Input to setpoints for axis0/axis1/leg
+void driveTorque(int32_t x, int32_t y, float* axisTorque0, float* axisTorque1, float *legSpeed) {
+
+  // Zero position threshold: filter mimimum joystick movement
+  float realX = (abs(x) < 15) ? 0.0f : x;
+  float realY = (abs(y) < 15) ? 0.0f : y;
+
+  // we normalize realX/Y values into a 100 unit circle (while turning, there is no need for full speed)
+  float length = sqrt(sq(realX) + sq(realY));
+  float scale = (length > 100) ? 100.0/length : 1.0;
+  float normalX = scale*realX;
+  float normalY = scale*realY;
+  
+  // compute to overall ehicle thrust/torque
+  float vehicleThrust = (MAX_VEHICLE_THRUST * normalY) / 100.0;
+  float vehicleTorque = (MAX_VEHICLE_TORQUE * -normalX) / 100.0;
+
+  // translate to individual axis forces
+  float thrustLeft = 0.5*vehicleThrust - vehicleTorque / CENTER_DISTANCE;
+  float thrustRight = 0.5*vehicleThrust + vehicleTorque / CENTER_DISTANCE;
+  
+  // translate to individual axis torque
+  float torqueLeft = thrustLeft * WHEEL_RADIUS;
+  float torqueRight = thrustRight * WHEEL_RADIUS;
+
+  // return (vel_left * LEFT_DIR, vel_right * RIGHT_DIR)
+  *axisTorque0 = torqueLeft * LEFT_DIR;
+  *axisTorque1 = torqueRight * RIGHT_DIR;
+
+  Serial.printf("F:%f M:%f F0:%f F1:%f M0:%f M1:%f\n", vehicleThrust, vehicleTorque, thrustLeft, thrustRight, torqueLeft, torqueRight);
+
+
+  *legSpeed = ((abs(realX) > 15) || (abs(realY) > 15)) ? LEG_MAX_SPEED : 0.0f;
 }
+
 
 void readRemoteJoystick(int32_t* x, int32_t* y) {
   if(controllerType == 1){ //DualShock Controller
@@ -186,6 +237,7 @@ void setup() {
 
   pinMode(TOGGLE_PIN, INPUT_PULLUP);
   pinMode(LIGHT_PWM_PIN, OUTPUT);
+  pinMode(AUDIO_OUTPUT_PIN, OUTPUT);
 
   int tryNum = 0;
   int error = -1;
@@ -224,6 +276,12 @@ void setup() {
   turnOffLeg();
   setTorqueLeg();
   setSpeedLeg();
+
+
+
+  tone(AUDIO_OUTPUT_PIN, 100, 1000);
+
+
 }  
 
 bool odriveArmed = false;
@@ -256,8 +314,11 @@ void loop() {
 
 
   // Effectors
-  float axisSpeed0, axisSpeed1, legSpeed;
-  drive(xInput, yInput, &axisSpeed0, &axisSpeed1, &legSpeed);
+  //float axisSpeed0, axisSpeed1, legSpeed;
+  float axisTorque0, axisTorque1, legSpeed;
+  
+  //drive(xInput, yInput, &axisSpeed0, &axisSpeed1, &legSpeed);
+  driveTorque(xInput, yInput, &axisTorque0, &axisTorque1, &legSpeed);
 
   // Main motor setpoint control
   switch(myState) {
@@ -267,12 +328,17 @@ void loop() {
         odrive.setDualState(AXIS_STATE_CLOSED_LOOP_CONTROL);
         odriveArmed = true;
       }
-      odrive.setDualVelocity(axisSpeed0, axisSpeed1);
+      // odrive.setDualVelocity(axisSpeed0, axisSpeed1);
+      
+      // SVEN DEBUG
+      odrive.setDualTorque(axisTorque0, axisTorque1);
       break;
     default:
       if (odriveArmed) {
         odrive.setDualState(AXIS_STATE_IDLE);
-        odrive.setDualVelocity(0.0f, 0.0f);
+        //odrive.setDualVelocity(0.0f, 0.0f);
+        odrive.setDualTorque(0.0f, 0.0f);
+
         odrive.clearErrors();
         odriveArmed = false;
       }
