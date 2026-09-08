@@ -1,8 +1,13 @@
+#include <Arduino.h>
 #include <ODriveUART.h>
 #include <HardwareSerial.h>
 #include <PS2X_lib.h>
 
 #include <Dmx_ESP32.h>
+
+namespace ts {
+  #include <TaskScheduler.h>
+}
 
 #include "AudioTools.h"
 #include "FS.h"
@@ -21,26 +26,19 @@ const uint8_t SWITCH_REMOTE_PIN = 13;
 
 const uint8_t TOGGLE_PIN = 21; // generic toggle
 
-
 const uint8_t ODRIVE_RX_PIN = 16; // implicit by using UART2
 const uint8_t ODRIVE_TX_PIN = 17; // implicit by using UART2
 
-// Serial 1 mapped to pins for modbus
-//const uint8_t LEG_RX_PIN = 27;
-//const uint8_t LEG_TX_PIN = 14;
+// MAX485
+const uint8_t DMX_TX_PIN = 14;   // Serial1 MAX485
+const uint8_t DMX_RX_PIN = 27; // unused
 
-// Pin-Definitionen für den ESP32
-const uint8_t DMX_TX_PIN = 14;   // Angeschlossen an DI (Driver Input) des MAX485
-//const int rxPin = 16;   // Angeschlossen an RO (Receiver Output) des MAX485 (optional)
-//const int rtsPin = 4;   // Angeschlossen an DE/RE (Richtungssteuerung) des MAX485
-
-
-
-// I2S Audio pins
+// I2S Audio
 const uint8_t I2S_DIN_PIN = 33;   
 const uint8_t I2S_LRC_PIN = 32;   
 const uint8_t I2S_BCLK_PIN = 25;  
 
+// PS2 controller
 const uint8_t PS2_DAT_PIN = 19;  //MISO  19
 const uint8_t PS2_CMD_PIN = 23;  //MOSI  23
 const uint8_t PS2_SEL_PIN = 5;  //SS     5
@@ -65,20 +63,25 @@ const uint8_t STATE_ERROR = 15;              // white flashing
 // ### Global state variables ####
 int myState = STATE_UNDEFINED;
 
+bool globalLightSwitch = false;  // global switch for light output
+
+
+
+
+// ###############################
+
 // ## Global controller objects
-//#define NUM_GAMEPADS 1
-//ControllerPtr myController = nullptr;
 PS2X ps2x;
 byte controllerType = 0;
 
 HardwareSerial myOdriveSerial(2); // RX:16, TX: 17
 ODriveUART odrive(myOdriveSerial);
 
-const int REMOTE_VEL_LIMIT = 100;
-const int REMOTE_YAW_LIMIT = 100;
+//const int REMOTE_VEL_LIMIT = 100; // for load testing
+//const int REMOTE_YAW_LIMIT = 100; // for load testing
 
-//const int REMOTE_VEL_LIMIT = 50; // % remote controller speed limit compared to local drive (lower than 100)
-//const int REMOTE_YAW_LIMIT = 75; // % remote controller yawd limit compared to local drive (lower than 100)
+const int REMOTE_VEL_LIMIT = 50; // % remote controller speed limit compared to local drive (lower than 100)
+const int REMOTE_YAW_LIMIT = 75; // % remote controller yawd limit compared to local drive (lower than 100)
 
 // Vehicle properties
 const float MAX_VEL = 2.22f;   // m/s (8 km/h)
@@ -110,21 +113,33 @@ const bool LEG_FORWARD = true;
 dmxTx dmxSend(DMX_PORT, DMX_TX_PIN, TX_ENABLE, -1, LOW); // , LED_GREEN, LOW);
 
 
-TaskHandle_t audioTask;
-
 I2SStream i2s;
 VolumeStream volume(i2s); 
 File audioFile;
 WAVDecoder decoder;
 StreamCopy copier(volume, audioFile); 
 
-// Der Name Ihrer einzelnen Datei
-const char* singleFile = "/R2D2-yeah.wav";
-
+// files on LittleFS 
 const char *audioFilenames[] = {"/R2D2-yeah.wav", "/swvader02.wav", "/blaster-firing.wav", "/chewbacca.wav"};
 
 int audioFileSelected = 0;
 bool playAudio = false;
+
+// 
+const unsigned long LIGHT_TASK_CYCLE_TIME = 40; 
+ts::Task lightTask(LIGHT_TASK_CYCLE_TIME, TASK_FOREVER, &lightLoop);
+
+const unsigned long DMX_TASK_CYCLE_TIME = 30; 
+ts::Task dmxTask(DMX_TASK_CYCLE_TIME, TASK_FOREVER, &dmxLoop);
+
+const unsigned long DRIVE_TASK_CYCLE_TIME = 100; 
+ts::Task driveTask(DRIVE_TASK_CYCLE_TIME, TASK_FOREVER, &driveLoop);
+
+const unsigned long AUDIO_TASK_CYCLE_TIME = 10; 
+ts::Task audioTask(AUDIO_TASK_CYCLE_TIME, TASK_FOREVER, &audioLoop);
+
+
+ts::Scheduler runner;
 
 
 
@@ -191,6 +206,10 @@ void readRemoteJoystick(int32_t* x, int32_t* y) {
     if (ps2x.ButtonPressed(PSB_PAD_RIGHT)) {
       audioFileSelected = 3;
       playAudio = true;
+    }
+
+    if (ps2x.ButtonPressed(PSB_L2) || ps2x.ButtonPressed(PSB_R2)) {
+      globalLightSwitch = !globalLightSwitch;
     }
 
     *x = map(xRaw, 0, 255, -REMOTE_YAW_LIMIT, REMOTE_YAW_LIMIT); // contrain not needed because its a uint8
@@ -312,14 +331,14 @@ void setup() {
 
   Serial1.begin(250000, SERIAL_8N2, -1, DMX_TX_PIN);
   if (!dmxSend.configure()) {
-    Serial.println("DMX-Konfiguration fehlgeschlagen oder bereits aktiv!");
+    Serial.println("Error: Cannot configure DMX on Serial1");
   } else {
-    Serial.println("DMX erfolgreich auf Serial1 gestartet.");
+    Serial.println("DMX configured on Serial1.");
   }
 
 
   // audio init
-    if(!LittleFS.begin()){
+  if(!LittleFS.begin()){
     Serial.println("LittleFS Mount Failed!");
     return;
   }
@@ -339,24 +358,26 @@ void setup() {
   volume.begin(cfg); 
   volume.setVolume(1.0); //0.2); 
 
-
-
-  xTaskCreatePinnedToCore(
-    audioLoop, /* Function to implement the task */
-      "Audio", /* Name of the task */
-      10000,  /* Stack size in words */
-      NULL,  /* Task input parameter */
-      0,  /* Priority of the task */
-      &audioTask,  /* Task handle. */
-      1); // Don´t mess with core-0 :-D 
+  runner.addTask(driveTask);
+  driveTask.enable();
+  runner.addTask(lightTask);
+  lightTask.enable();
+  runner.addTask(dmxTask);
+  dmxTask.enable();
+  runner.addTask(audioTask);
+  audioTask.enable();
 
 }  
 
 bool odriveArmed = false;
 
 void loop() {
+  runner.execute();
+  delay(1);
+}
 
-  TickType_t lastWakeTime = xTaskGetTickCount();
+
+void driveLoop() {
 
   // Read main rotary switch
   int switchLocal = (digitalRead(SWITCH_LOCAL_PIN) == LOW);
@@ -368,23 +389,19 @@ void loop() {
 
   setStatusLED();
 
-  bool light = (digitalRead(TOGGLE_PIN) == LOW);
-  if(light) {
-    dmxSend.write(200, 2);
+  static int lastToggleRead = HIGH;
+  int currentToggleRead = digitalRead(TOGGLE_PIN);
+  if((currentToggleRead == LOW) && (lastToggleRead == HIGH)) {
+    // "rising edge"
+    globalLightSwitch = !globalLightSwitch;
   }
-  else {
-    dmxSend.write(0,1);
-    dmxSend.write(0,2);
-    dmxSend.write(0,3);
-    dmxSend.write(0,4);
-  }
+  lastToggleRead = currentToggleRead;
   
   int32_t xLocalJoystick, yLocalJoystick;
   readJoystick(&xLocalJoystick, &yLocalJoystick);
 
   int32_t xRemoteJoystick, yRemoteJoystick;
   readRemoteJoystick(&xRemoteJoystick, &yRemoteJoystick); // need read to keep controller updated 
-
 
   int32_t xInput = (myState == STATE_LOCAL_DRIVE) ? xLocalJoystick :
                    (myState == STATE_REMOTE_DRIVE) ? xRemoteJoystick : 0;
@@ -446,38 +463,80 @@ void loop() {
   dmxSend.write(0, 4);
   */
 
-  dmxSend.transmit();
   
-  vTaskDelayUntil(&lastWakeTime, 100); // 100ms cycle
+ // vTaskDelayUntil(&lastWakeTime, 100); // 100ms cycle
 }
 
-void audioLoop(void* parameter) {
-  while(true) {
 
-    if(playAudio) {
+#define NUM_COLORS 4
+#define NUM_CHANNELS 4
+const uint8_t COLORS[NUM_COLORS][NUM_CHANNELS] = {
+ // { 148, 0,  211, 0}, // violet
+  { 30, 10, 255, 0}, // violet
+  { 255, 20, 147, 0}, // pink
+  { 0,   0,  255, 0}, // blue
+  { 255, 69, 0,   0}  // orange
+};
 
-      if(!audioFile) {
-        // Loading audiofile
-        audioFile = LittleFS.open(audioFilenames[audioFileSelected], "r");
-        if (!audioFile) {
-          Serial.printf("Fehler: Konnte %s nicht oeffnen!\n", singleFile);
-          return;
-        }
-        copier.begin(volume, audioFile);
-      } 
 
-      // Kopiere Daten, solange die Datei noch nicht zu Ende ist
-      if (audioFile && audioFile.available()) {
-        copier.copy();
-      } else {
-        if (audioFile) audioFile.close();
-        playAudio = false;
+uint8_t lightOutput[NUM_CHANNELS];
+
+const int lightPeriod = 100; // in cycles , not ms
+const int fadePeriod = lightPeriod / NUM_COLORS;
+
+// LIGHT_TASK_CYCLE_TIMEis 40ms
+void lightLoop() {
+
+  static float masterFade = 0.0;
+  static int t = 0; // tick counter
+  
+  t++;
+  if(t >= lightPeriod)  {
+    t = 0;
+  }
+
+  //masterFade = constrain( (globalLightSwitch) ? masterFade + 0.08 : masterFade - 0.08, 0.0, 1.0);
+  masterFade = (globalLightSwitch) ? 1.0 : 0.0;
+
+  int fadeStep = t / fadePeriod;
+  int microStep = t - fadeStep * fadePeriod;
+  float fade = 0.5 * (cos( PI * microStep / fadePeriod ) + 1); 
+  for(int channel = 0; channel < NUM_CHANNELS; channel++) {
+    lightOutput[channel] = (uint8_t) (masterFade * (fade * COLORS[fadeStep][channel] + (1-fade) * COLORS[(fadeStep+1)%NUM_COLORS][channel]));
+  }
+}
+
+
+
+
+// Task
+// read light and other channels and send to DMX
+void dmxLoop() {
+  for(int channel = 0; channel < NUM_CHANNELS; channel++) {
+    dmxSend.write(lightOutput[channel], 1+channel);
+  }
+  dmxSend.transmit();
+}
+
+
+void audioLoop() {
+  if(playAudio) {
+
+    if(!audioFile) {
+      // Loading audiofile
+      audioFile = LittleFS.open(audioFilenames[audioFileSelected], "r");
+      if (!audioFile) {
+        return;
       }
+      copier.begin(volume, audioFile);
+    } 
 
-      // delay for next copy
-      delay(5);
-    } else { // !playAudio
-      delay(100);
+    // Streaming audio file while there is data left
+    if (audioFile && audioFile.available()) {
+      copier.copy();
+    } else {
+      if (audioFile) audioFile.close();
+      playAudio = false;
     }
   }
 }
